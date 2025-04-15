@@ -13,8 +13,8 @@ parser.add_argument("qid", type=int, help="qid")
 args = parser.parse_args()
 
 
-PATH = '/Users/erinkimbro/Projects/merian_variable'
-PATH2 = '/Users/erinkimbro/Projects/merian_variable/results/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
+PATH = '../../..'
+PATH2 = '../../../results/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
 
 
 #tpl_table = ascii.read(PATH + '/tables/tpl_mags.csv')
@@ -76,7 +76,7 @@ for j in range(len(prop_files)):
             ax.set_ylim(np.mean(model_t['mag'])+10*np.std(model_t['mag']), np.mean(model_t['mag'])-10*np.std(model_t['mag']))
             ax.legend()
             #ax.gca().invert_yaxis()
-            plt.savefig(PATH2+'/plot/light_curves/'+catalog+'_'+name+'_lightcurve.png')
+            plt.savefig(PATH2+'/plots/light_curves/'+catalog+'_'+name+'_lightcurve.png')
             plt.close()
         else:
             pass

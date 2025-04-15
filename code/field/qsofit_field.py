@@ -16,8 +16,8 @@ parser.add_argument("qid", type=int, help="qid")
 args = parser.parse_args()
 
 
-PATH = '/Users/erinkimbro/Projects/merian_variable'
-PATH2 = '/Users/erinkimbro/Projects/merian_variable/results/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
+PATH = '../../..'
+PATH2 = '../../../results/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
 
 
 tpl_files = glob.glob(PATH2 + '/tables/tpl_mags_*.csv')

@@ -29,8 +29,8 @@ parser.add_argument("qid", type=int, help="qid")
 args = parser.parse_args()
 
 #get files
-PATH = '/Users/erinkimbro/Projects/merian_variable'
-PATH2 = '/Users/erinkimbro/Projects/merian_variable/results/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
+PATH = '../../../'
+PATH2 = '../../../results'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
 dir = ['/WorkingDir/1_1/','/WorkingDir/1_2/','/WorkingDir/2_1/','/WorkingDir/2_2/']
 
 for z in range(len(dir)):
@@ -88,7 +88,7 @@ for z in range(len(dir)):
     pos = tbl4['sky_centroid']
 
     #hdul = fits.open('/Users/erinkimbro/Projects/merian_variable/data/nsa_v0_1_2.fits')
-    hdul = fits.open('/Users/erinkimbro/Projects/merian_variable/data/Merian_DR1_photoz_EAZY_v2.0.fits')
+    hdul = fits.open(PATH + '/data/Merian_DR1_photoz_EAZY_v2.0.fits')
     merian_data = hdul[1].data
     ra = merian_data['coord_ra_Merian']*u.deg
     dec = merian_data['coord_dec_Merian']*u.deg
@@ -101,7 +101,7 @@ for z in range(len(dir)):
     catalog_matches_merian = merian_data[idx[sep_constraint]]
     tbl4_merian = tbl4[sep_constraint]
 
-    hdul = fits.open('/Users/erinkimbro/Projects/merian_variable/data/nsa_v0_1_2.fits')
+    hdul = fits.open(PATH + '/data/nsa_v0_1_2.fits')
     nsa_data = hdul[1].data
     ra = nsa_data['RA']*u.deg
     dec = nsa_data['DEC']*u.deg

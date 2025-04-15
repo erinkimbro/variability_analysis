@@ -1,4 +1,4 @@
-cd /Users/erinkimbro/Projects/merian_variable/code/field
+cd /Users/erinkimbro/Projects/merian_variable_NEW/variability_analysis/code/field
 
 while read -r FIELD CCDID QID; do
 
@@ -16,14 +16,14 @@ while read -r FIELD CCDID QID; do
 
             echo "Enough Data"
 
-            cd ../../results
+            cd ../../../results
 
             mkdir "$FIELD"_"$CCDID"_"$QID"
 
             cd "$FIELD"_"$CCDID"_"$QID"
 
             mkdir tables
-            mkdir plot
+            mkdir plots
 
             cd tables
 
@@ -35,7 +35,7 @@ while read -r FIELD CCDID QID; do
             mkdir cutouts
             mkdir light_curves
 
-            cd ../../../code/field
+            cd ../../variability_analysis/code/field
 
             python ztf_dwnld_ims_field.py
 
@@ -46,12 +46,12 @@ while read -r FIELD CCDID QID; do
             cd field
             python diapl_setup.py
 
-            cd ../../WorkingDir
+            cd ../../../diapl2/WorkingDir
             bash fwhms.bash
-            cd ../code  
+            cd ../../variability_analysis/code  
             python set_ref_image.py
 
-            cd ../WorkingDir   
+            cd ../../diapl2/WorkingDir   
             bash mktpllist.bash
             bash shifts.bash   
             bash template.bash 
@@ -59,32 +59,35 @@ while read -r FIELD CCDID QID; do
 
             if test -f 1_1/simages.txt
             then
-                cd ../code/field
+                cd ../../variability_analysis/code/field
 
                 python photometry_field.py "$FIELD" "$CCDID" "$QID"
                 python qsofit_field.py "$FIELD" "$CCDID" "$QID"
                 python lightcurve_field.py "$FIELD" "$CCDID" "$QID"
 
-                rm -rf ../../WorkingDir
-                cp -R ../../WorkingDirectoryTemplate ../../WorkingDir
+                rm -rf ../../../diapl2/WorkingDir
+                cp -R ../../../diapl2/WorkingDirectoryTemplate ../../../diapl2/WorkingDir
 
+                cd ../../../results
                 echo "$FIELD" "$CCDID" "$QID" "Successful" >> field_log.txt
 
             else
-                cd ../results
+                cd ../../../results
                 rm -rf "$FIELD"_"$CCDID"_"$QID"
 
                 cd ../code/field
-                rm -rf ../../WorkingDir
-                cp -R ../../WorkingDirectoryTemplate ../../WorkingDir
+                rm -rf ../../../diapl2/WorkingDir
+                cp -R ../../../diapl2/WorkingDirectoryTemplate ../../../diapl2/WorkingDir
+                cd ../../../results
                 echo "$FIELD" "$CCDID" "$QID" "DIAPL FAILED" >> field_log.txt
             fi
 
 
         else
             echo "Not Enough Data"
-            rm -rf ../../WorkingDir
-            cp -R ../../WorkingDirectoryTemplate ../../WorkingDir
+            rm -rf ../../../diapl2/WorkingDir
+            cp -R ../../../diapl2/WorkingDirectoryTemplate ../../../diapl2/WorkingDir
+            cd ../../../results
             echo "$FIELD" "$CCDID" "$QID" "NOT ENOUGH DATA" >> field_log.txt
             
 

@@ -6,10 +6,8 @@ from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
 
 
-PATH = '/Users/erinkimbro/Projects/merian_variable'
-
 #SET SATURATION LEVEL
-files = glob.glob(PATH + '/WorkingDir/ztf*.fits')
+files = glob.glob('../../../diapl2/WorkingDir/ztf*.fits')
 
 sat = np.zeros(len(files))
 bg_mean = np.zeros(len(files))
@@ -28,18 +26,18 @@ for i in range(len(files)):
     #print(np.mean(header['SATURATE']), np.std(header['SATURATE']))
 
 #edit instrument.par
-with open(PATH + '/WorkingDir/instrument.par', 'r') as f:
+with open('../../../diapl2/WorkingDir/instrument.par', 'r') as f:
     lines = f.readlines()
 
 lines[12] = 'SAT_LEVEL = '+str(3*np.median(sat))+'\n'
 
-with open(PATH + '/WorkingDir/instrument.par', 'w') as f:
+with open('../../../diapl2/WorkingDir/instrument.par', 'w') as f:
     f.writelines(lines)
     f.close()
 
 
 #edit fwhmm.par
-with open(PATH + '/WorkingDir/fwhmm.par', 'r') as f:
+with open('../../../diapl2/WorkingDir/fwhmm.par', 'r') as f:
     lines = f.readlines()
 
 lines[17] = 'MIN_PEAK = '+str(np.median(3*bg_med))+'\n'
@@ -47,7 +45,7 @@ lines[20] = 'MAX_SKY = '+str(np.median(1.5*bg_med))+'\n'
 
 
 
-with open(PATH + '/WorkingDir/fwhmm.par', 'w') as f:
+with open('../../../diapl2/WorkingDir/fwhmm.par', 'w') as f:
     f.writelines(lines)
     f.close()
 
