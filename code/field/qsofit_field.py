@@ -7,17 +7,33 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from astropy.stats import sigma_clipped_stats
 import glob as glob
+import numpy as np
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("field", type=int, help="field number")
 parser.add_argument("ccdid", type=int, help="ccdid")
 parser.add_argument("qid", type=int, help="qid")
+parser.add_argument("filter", type=str, help="filter")
 args = parser.parse_args()
 
 
 PATH = '../../..'
-PATH2 = '../../../results/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
+PATH2 = '../../../results_'+args.filter+'/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
+
+def bin_data(t, data, err, bin_size):
+    ##bin data background subtraction?
+    step = np.arange(0, len(t), bin_size)
+    data_bin = []
+    t_bin = []
+    data_err_bin = []
+    #np.sum(data_sim-np.median(data_sim), axis=0)/len(data_sim)
+    for i in range(len(step)-1):
+        t_bin.append(np.mean(t[step[i]:step[i+1]]))
+        data_err_bin.append(np.sqrt(np.mean(err[step[i]:step[i+1]]**2)))
+        data_bin.append(np.mean(data[step[i]:step[i+1]]))
+
+    return t_bin, data_bin, data_err_bin
 
 
 tpl_files = glob.glob(PATH2 + '/tables/tpl_mags_*.csv')
@@ -66,12 +82,20 @@ for j in range(len(tpl_files)):
 
             model_t.write(PATH2 + '/tables/models/model_'+catalog+'_'+name+'.fits', overwrite=True)
 
+            s2 = np.sum((np.mean(data['mag']) - data['mag'])**2)/(len(data['mag'])-1)
+            sigerr2 = np.mean(np.square(data['mag_err']))
+            if (s2-sigerr2)/(np.mean(data['mag'])**2) > 0: 
+                F_var = np.sqrt((s2-sigerr2)/(np.mean(data['mag'])**2))
+            else:
+                F_var = np.nan
+
             # Open a csv file for writing
             # COME UP WITH NAMING CONVENTION
             # ALSO FIX DIRECTORY
             # SAVE MODEL AND FIT STATISTICS SEPARELATELY
             # APPEND FIT STATISTICS FOR ALL OBJECTS IN ONE FILE
             fit.update({"name":int(name)})
+            fit.update({"f_var":F_var})
             #fit.update({"ra":ra[i]})
             #fit.update({"dec":dec[i]})
 

@@ -10,11 +10,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("field", type=int, help="field number")
 parser.add_argument("ccdid", type=int, help="ccdid")
 parser.add_argument("qid", type=int, help="qid")
+parser.add_argument("filter", type=str, help="filter")
 args = parser.parse_args()
 
 
 PATH = '../../..'
-PATH2 = '../../../results/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
+PATH2 = '../../../results_'+args.filter+'/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
 
 
 #tpl_table = ascii.read(PATH + '/tables/tpl_mags.csv')
@@ -40,7 +41,7 @@ for j in range(len(prop_files)):
         hdr = fits.open(PATH2 + '/tables/models/model_'+catalog+'_'+name+'.fits')
         model_t = hdr[1].data
 
-        if len(t)>0:
+        if (len(t)>0)&(len(model_t)>0):
 
             #need to read in fit table -> search for object
             #mask = tp['name'] == str(args.field) + str(args.ccdid) + str(args.qid) + str(i)
@@ -73,10 +74,10 @@ for j in range(len(prop_files)):
             ax.set_xlabel('MJD')
             ax.set_ylabel(r'$m_r$')
             ax.set_xlim(np.min(model_t['date'])-50, np.max(model_t['date'])+50)
-            ax.set_ylim(np.mean(model_t['mag'])+10*np.std(model_t['mag']), np.mean(model_t['mag'])-10*np.std(model_t['mag']))
+            ax.set_ylim(np.mean(model_t['mag'])+10*np.std(model_t['mag'])+0.5, np.mean(model_t['mag'])-10*np.std(model_t['mag'])-0.5)
             ax.legend()
             #ax.gca().invert_yaxis()
-            plt.savefig(PATH2+'/plots/light_curves/'+catalog+'_'+name+'_lightcurve.png')
+            plt.savefig(PATH2+'/plots/light_curves/'+catalog+'_'+name+'_lightcurve.png') 
             plt.close()
         else:
             pass

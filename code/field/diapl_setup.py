@@ -7,7 +7,7 @@ from astropy.stats import sigma_clipped_stats
 
 
 #SET SATURATION LEVEL
-files = glob.glob('../../../diapl2/WorkingDir/ztf*.fits')
+files = glob.glob('../../../diapl2/WorkingDir/*.fits')
 
 sat = np.zeros(len(files))
 bg_mean = np.zeros(len(files))

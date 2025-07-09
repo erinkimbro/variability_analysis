@@ -119,6 +119,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("field", type=float, help="field number")
 parser.add_argument("ccdid", type=float, help="ccdid")
 parser.add_argument("qid", type=float, help="qid")
+parser.add_argument("filter", type=str, help="filter")
 args = parser.parse_args()
 
 print('START')
@@ -129,7 +130,7 @@ cmd = get_metatable(args.field, args.ccdid, args.qid)
 subprocess.run(cmd, shell=True)
 
 #filter table, add filter/seeing as positional argument?
-data = filter_table('zr', 2)
+data = filter_table(args.filter, 2)
 
 data.write('masked_out.tbl', format='ipac', overwrite=True) 
 

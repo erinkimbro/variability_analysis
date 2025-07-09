@@ -12,7 +12,6 @@ import csv
 from astropy.wcs import WCS
 from photutils.utils import calc_total_error
 from photutils.segmentation import SourceCatalog
-from photutils.background import Background2D, MedianBackground
 from photutils.segmentation import deblend_sources
 from photutils.segmentation import detect_sources
 from astropy.convolution import convolve
@@ -21,17 +20,20 @@ from photutils.utils import calc_total_error, CutoutImage
 import matplotlib.pyplot as plt
 from astropy.visualization import SqrtStretch, LogStretch
 from astropy.visualization.mpl_normalize import ImageNormalize
+from photutils.background import Background2D, MedianBackground
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("field", type=int, help="field number")
 parser.add_argument("ccdid", type=int, help="ccdid")
 parser.add_argument("qid", type=int, help="qid")
+parser.add_argument("filter", type=str, help="filter")
 args = parser.parse_args()
 
 #get files
-PATH = '../../../'
-PATH2 = '../../../results'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
-dir = ['/WorkingDir/1_1/','/WorkingDir/1_2/','/WorkingDir/2_1/','/WorkingDir/2_2/']
+PATH = '../../..'
+PATH2 = '../../../results_'+args.filter+'/'+ str(int(args.field)) + '_' + str(int(args.ccdid)) + '_' + str(int(args.qid))
+dir = ['/diapl2/WorkingDir/1_1/','/diapl2/WorkingDir/1_2/','/diapl2/WorkingDir/2_1/','/diapl2/WorkingDir/2_2/']
 
 for z in range(len(dir)):
     
@@ -44,6 +46,7 @@ for z in range(len(dir)):
     hdr = fits.open(tpl_file[0])
     wcs = WCS(hdr[0].header)
     tpl_data = hdr[0].data
+    tpl_hdr = hdr[0].header
 
     #photometry
     mean = np.zeros(len(files))
@@ -64,9 +67,9 @@ for z in range(len(dir)):
                     bkg_estimator=bkg_estimator)
     tpl_data -= bkg.background  # subtract the background
 
-    threshold = 10 * bkg.background_rms
+    threshold = 1.5 * bkg.background_rms
 
-
+ 
     segment_map = detect_sources(tpl_data, threshold, npixels=10)
 
     segm_deblend = deblend_sources(tpl_data, segment_map,
@@ -88,7 +91,7 @@ for z in range(len(dir)):
     pos = tbl4['sky_centroid']
 
     #hdul = fits.open('/Users/erinkimbro/Projects/merian_variable/data/nsa_v0_1_2.fits')
-    hdul = fits.open(PATH + '/data/Merian_DR1_photoz_EAZY_v2.0.fits')
+    hdul = fits.open(PATH + '/workspace/data/merian_dwarfs.fits')
     merian_data = hdul[1].data
     ra = merian_data['coord_ra_Merian']*u.deg
     dec = merian_data['coord_dec_Merian']*u.deg
@@ -101,7 +104,7 @@ for z in range(len(dir)):
     catalog_matches_merian = merian_data[idx[sep_constraint]]
     tbl4_merian = tbl4[sep_constraint]
 
-    hdul = fits.open(PATH + '/data/nsa_v0_1_2.fits')
+    hdul = fits.open(PATH + '/workspace/data/nsa_v0_1_2.fits')
     nsa_data = hdul[1].data
     ra = nsa_data['RA']*u.deg
     dec = nsa_data['DEC']*u.deg
@@ -115,8 +118,9 @@ for z in range(len(dir)):
     catalog_matches_nsa = nsa_data[idx[sep_constraint]]
     tbl4_nsa = tbl4[sep_constraint]
 
-    ra = [127.302792,235.739542,239.790083]*u.deg
-    dec = [50.114528,3.114778,35.029833]*u.deg
+    gh7_data = ascii.read(PATH + '/workspace/data/GH7.csv')
+    ra = gh7_data['ra']*u.deg
+    dec = gh7_data['dec']*u.deg
     catalog = SkyCoord(ra=ra, dec=dec)
     pos = tbl4['sky_centroid']
 
@@ -124,50 +128,54 @@ for z in range(len(dir)):
     idx, d2d, d3d = pos.match_to_catalog_3d(catalog)
     sep_constraint = d2d < max_sep
     pos = pos[sep_constraint]
-    tbl4_misc = tbl4[sep_constraint]
+    catalog_matches_gh7 = gh7_data[idx[sep_constraint]]
+    tbl4_gh7 = tbl4[sep_constraint]
 
     if (len(tbl4_nsa)>0) & (len(tbl4_merian)>0):
         tbl4_nsa.add_column(np.repeat('nsa', len(tbl4_nsa)), name='catalog')
         tbl4_merian.add_column(np.repeat('merian', len(tbl4_merian)), name='catalog')
         tbl4 = vstack([tbl4_merian, tbl4_nsa])
-        if (len(tbl4_misc)) > 0:
-            tbl4_misc.add_column(np.repeat('misc', len(tbl4_misc)), name='catlog')
-            tbl4 = vstack(tbl4, tbl4_misc)
 
     if (len(tbl4_nsa)>0) & (len(tbl4_merian)==0): 
         tbl4_nsa.add_column(np.repeat('nsa', len(tbl4_nsa)), name='catalog')
         tbl4 = tbl4_nsa
-        if (len(tbl4_misc)) > 0:
-            tbl4_misc.add_column(np.repeat('misc', len(tbl4_misc)), name='catlog')
-            tbl4 = vstack(tbl4, tbl4_misc)
+
 
     if (len(tbl4_nsa)==0) & (len(tbl4_merian)>0):
         tbl4_merian.add_column(np.repeat('merian', len(tbl4_merian)), name='catalog')
         tbl4 = tbl4_merian
 
-        if (len(tbl4_misc)) > 0:
-            tbl4_misc.add_column(np.repeat('misc', len(tbl4_misc)), name='catlog')
-            tbl4 = vstack(tbl4, tbl4_misc)
+    if (len(tbl4_gh7) > 0) & ((len(tbl4_nsa)>0 | len(tbl4_merian)>0)) :
+        tbl4_gh7.add_column(np.repeat('misc', len(tbl4_gh7)), name='catalog')
+        tbl4 = vstack([tbl4, tbl4_gh7])
 
-    if (len(tbl4_nsa)==0) & (len(tbl4_merian)==0):
-        if (len(tbl4_misc)) > 0:
-            tbl4_misc.add_column(np.repeat('misc', len(tbl4_misc)), name='catlog')
-            tbl4 = vstack(tbl4, tbl4_misc)
+    if (len(tbl4_gh7) > 0) & ((len(tbl4_nsa)==0 & len(tbl4_merian)==0)) :
+        tbl4_gh7.add_column(np.repeat('misc', len(tbl4_gh7)), name='catalog')
+        tbl4 =  tbl4_gh7
 
-
-    pos = tbl4['sky_centroid']
-
-
-    for i in range(len(tbl4)): 
-        cutout = CutoutImage(tpl_data, (tbl4['ycentroid'][i], tbl4['xcentroid'][i]), (20, 20))
-        norm = ImageNormalize(stretch=LogStretch())
-        fig, ax = plt.subplots()
-        ax.imshow(cutout, norm=norm)
-        plt.savefig(PATH2+'/plot/cutouts/'+str(int(args.field)) + str(int(args.ccdid)) + str(int(args.qid)) + str(z) + str(i)+'_cutout.png')
-        plt.close()
+    if (len(tbl4_gh7) == 0) & ((len(tbl4_nsa)==0 & len(tbl4_merian)==0)) :
+        tbl4 = []
 
 
+    
     if len(tbl4)>0:
+
+
+        segment_mag = -2.5*np.log10(tbl4['segment_flux']) + tpl_hdr['MAGZP']
+        tbl4.add_column(segment_mag, name='segment_mag')
+        tbl4.write(PATH2 + '/tables/init_tbl_'+str(args.field) + str(args.ccdid) + str(args.qid)+ str(int(z))+'.csv', overwrite=True)
+        pos = tbl4['sky_centroid']
+
+
+        for i in range(len(tbl4)): 
+            cutout = CutoutImage(tpl_data, (tbl4['ycentroid'][i], tbl4['xcentroid'][i]), (20, 20))
+            norm = ImageNormalize(stretch=LogStretch())
+            fig, ax = plt.subplots()
+            ax.imshow(cutout, norm=norm)
+            plt.savefig(PATH2+'/plots/cutouts/cutout'+tbl4['catalog'][i]+str(int(args.field)) + str(int(args.ccdid)) + str(int(args.qid)) + str(z) + str(i)+'.png')
+            plt.close()
+
+
 
         tpl_bkg_aper = SkyCircularAnnulus(tbl4['sky_centroid'], 2.5*u.arcsec, 5*u.arcsec)
         tpl_bkg_aperstats = ApertureStats(tpl_data, tpl_bkg_aper, wcs=wcs, error=error)
@@ -306,26 +314,30 @@ for z in range(len(dir)):
 
 
         avg_mag = np.nanmean(np.where(aper_mag > 0, aper_mag, np.nan), axis=1)
+        avg_std = np.nanstd(np.where(aper_mag > 0, aper_mag, np.nan), axis=1)
         avg_mag_err = np.sqrt(np.nanmean(np.where(aper_mag_err > 0, aper_mag_err, np.nan)**2, axis=1))
         if len(np.array(name)[merian_mask])>0:
-            tpl_t_m = Table([np.array(name)[merian_mask], catalog_matches_merian['objectId_Merian'], pos.ra.value[merian_mask], pos.dec.value[merian_mask], catalog_matches_merian['logmass'], 
-                    catalog_matches_merian['logsfr'], catalog_matches_merian['logssfr'], avg_mag[merian_mask], avg_mag_err[merian_mask]], 
-                    names=('name', 'objectId_Merian', 'ra', 'dec', 'logmass', 'logsfr', 'logssfr', 'mag', 'mag_err'))
+            tpl_t_m = Table([np.array(name)[merian_mask], catalog_matches_merian['objectId_Merian'], pos.ra.value[merian_mask], pos.dec.value[merian_mask], catalog_matches_merian['logmass_gaap'], 
+                    catalog_matches_merian['logsfr_gaap'], catalog_matches_merian['z500'], avg_mag[merian_mask], avg_mag_err[merian_mask], avg_std[merian_mask],
+                    np.repeat(args.field, len(avg_mag[merian_mask])), np.repeat(args.ccdid, len(avg_mag[merian_mask])), np.repeat(args.qid, len(avg_mag[merian_mask]))],
+                    names=('name', 'objectId_Merian', 'ra', 'dec', 'logmass', 'logsfr', 'z' ,'mag', 'mag_err', 'mag_std', 'field', 'ccdid', 'qid'))
             tpl_t_m.write(PATH2 + "/tables/tpl_mags_merian_"+str(args.field) + str(args.ccdid) + str(args.qid)+ str(int(z))+".csv", format='csv', overwrite=True)
 
         if len(np.array(name)[nsa_mask])>0:
             tpl_t_n = Table([np.array(name)[nsa_mask], catalog_matches_nsa['NSAID'], pos.ra.value[nsa_mask], pos.dec.value[nsa_mask], catalog_matches_nsa['MASS'], 
-                avg_mag[nsa_mask], avg_mag_err[nsa_mask]], 
-                names=('name', 'objectId_Merian', 'ra', 'dec', 'logmass', 'mag', 'mag_err'))
+                avg_mag[nsa_mask], avg_mag_err[nsa_mask],avg_std[nsa_mask], np.repeat(args.field, len(avg_mag[nsa_mask])), 
+                np.repeat(args.ccdid, len(avg_mag[nsa_mask])), np.repeat(args.qid, len(avg_mag[nsa_mask]))], 
+                names=('name', 'objectId_Merian', 'ra', 'dec', 'logmass', 'mag', 'mag_err', 'mag_std', 'field', 'ccdid', 'qid'))
             tpl_t_n.write(PATH2 + "/tables/tpl_mags_nsa_"+str(args.field) + str(args.ccdid) + str(args.qid)+ str(int(z))+".csv", format='csv', overwrite=True)
 
         
         if len(np.array(name)[misc_mask])>0:
-            tpl_t_misc = Table([np.array(name)[nsa_mask], pos.ra.value[misc_mask], pos.dec.value[misc_mask], 
-                avg_mag[misc_mask], avg_mag_err[misc_mask]], 
-                names=('name', 'ra', 'dec', 'mag', 'mag_err'))
+            tpl_t_misc = Table([np.array(name)[misc_mask], pos.ra.value[misc_mask], pos.dec.value[misc_mask], 
+                avg_mag[misc_mask], avg_mag_err[misc_mask], np.repeat(args.field, len(avg_mag[misc_mask])), 
+                np.repeat(args.ccdid, len(avg_mag[misc_mask])), np.repeat(args.qid, len(avg_mag[misc_mask]))], 
+                names=('name', 'ra', 'dec', 'mag', 'mag_err', 'field', 'ccdid', 'qid'))
 
-            tpl_t_misc.write(PATH2 + "/tables/tpl_mags_nsa_"+str(args.field) + str(args.ccdid) + str(args.qid)+ str(int(z))+".csv", format='csv', overwrite=True)
+            tpl_t_misc.write(PATH2 + "/tables/tpl_mags_misc_"+str(args.field) + str(args.ccdid) + str(args.qid)+ str(int(z))+".csv", format='csv', overwrite=True)
 
 
         #master_tpl = ascii.r ead(PATH + "/tables/tpl_mags.csv")
@@ -357,4 +369,5 @@ for z in range(len(dir)):
         '''
 
     else:
-        pass
+        with open('../../../results/field_log.txt','a') as f:
+            f.write(str(int(args.field)) + ' ' + str(int(args.ccdid)) + ' ' + str(int(args.qid)) + ' ' + str(z) + ' No Objects in Field')

@@ -1,8 +1,7 @@
-cd /Users/erinkimbro/Projects/merian_variable_NEW/variability_analysis/code/field
 
-while read -r FIELD CCDID QID; do
+while read -r FIELD CCDID QID FILTER; do
 
-    python ztf_download_field.py "$FIELD" "$CCDID" "$QID"
+    python ztf_download_field.py "$FIELD" "$CCDID" "$QID" "$FILTER"
 
     while read line; do
 
@@ -16,7 +15,7 @@ while read -r FIELD CCDID QID; do
 
             echo "Enough Data"
 
-            cd ../../../results
+            cd ../../../results_"$FILTER"
 
             mkdir "$FIELD"_"$CCDID"_"$QID"
 
@@ -30,12 +29,14 @@ while read -r FIELD CCDID QID; do
             mkdir measurements
             mkdir models
 
-            cd ../plot
+            cd ..
+
+            cd plots
 
             mkdir cutouts
             mkdir light_curves
 
-            cd ../../variability_analysis/code/field
+            cd ../../../variability_analysis/code/field
 
             python ztf_dwnld_ims_field.py
 
@@ -61,38 +62,45 @@ while read -r FIELD CCDID QID; do
             then
                 cd ../../variability_analysis/code/field
 
-                python photometry_field.py "$FIELD" "$CCDID" "$QID"
-                python qsofit_field.py "$FIELD" "$CCDID" "$QID"
-                python lightcurve_field.py "$FIELD" "$CCDID" "$QID"
+                python photometry_field.py "$FIELD" "$CCDID" "$QID" "$FILTER"
+                python qsofit_field.py "$FIELD" "$CCDID" "$QID" "$FILTER"
+                python lightcurve_field.py "$FIELD" "$CCDID" "$QID" "$FILTER"
 
                 rm -rf ../../../diapl2/WorkingDir
                 cp -R ../../../diapl2/WorkingDirectoryTemplate ../../../diapl2/WorkingDir
 
-                cd ../../../results
-                echo "$FIELD" "$CCDID" "$QID" "Successful" >> field_log.txt
+                cd ../../../results_"$FILTER"
+                echo "$FIELD" "$CCDID" "$QID" "$FILTER" "Successful" >> field_log.txt
+                cd ../variability_analysis/code/field
 
             else
-                cd ../../../results
+                cd ../../results_"$FILTER"
                 rm -rf "$FIELD"_"$CCDID"_"$QID"
 
-                cd ../code/field
+                cd ../variability_analysis/code/field
                 rm -rf ../../../diapl2/WorkingDir
                 cp -R ../../../diapl2/WorkingDirectoryTemplate ../../../diapl2/WorkingDir
-                cd ../../../results
-                echo "$FIELD" "$CCDID" "$QID" "DIAPL FAILED" >> field_log.txt
+                cd ../../../results_"$FILTER"
+                echo "$FIELD" "$CCDID" "$QID" "$FILTER" "DIAPL FAILED" >> field_log.txt
+                cd ../variability_analysis/code/field
             fi
 
 
         else
             echo "Not Enough Data"
+            cd ../../results_"$FILTER"
+            rm -rf "$FIELD"_"$CCDID"_"$QID"
+
+            cd ../variability_analysis/code/field
             rm -rf ../../../diapl2/WorkingDir
             cp -R ../../../diapl2/WorkingDirectoryTemplate ../../../diapl2/WorkingDir
-            cd ../../../results
-            echo "$FIELD" "$CCDID" "$QID" "NOT ENOUGH DATA" >> field_log.txt
+            cd ../../../results_"$FILTER"
+            echo "$FIELD" "$CCDID" "$QID" "$FILTER" "NOT ENOUGH DATA" >> field_log.txt
+            cd ../variability_analysis/code/field
             
 
         fi
 
     done < test.txt
 
-done < fields.dat
+done < ../../../workspace/data/fields.dat

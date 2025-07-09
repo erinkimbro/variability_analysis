@@ -16,12 +16,13 @@ import glob as glob
 
 
 
-def combine_prop_tables(catalog):
+def combine_prop_tables(catalog, filter):
     '''
     combine property tables from all fields
     catalog: string of desired catalog -- merian, nsa, misc
     '''
-    files = glob.glob('/Users/erinkimbro/Projects/merian_variable/results/*/tables/prop_'+catalog+'*')
+    PATH = '/Users/erinkimbro/Projects/merian_variable_NEW/results_%s'%(filter)
+    files = glob.glob(PATH+'/*/tables/prop_'+catalog+'*')
 
     tab = []
     for i in range(len(files)):
@@ -31,23 +32,27 @@ def combine_prop_tables(catalog):
     return tab
 
 
-def duplicates(tab, catalog):
+def duplicates(tab, catalog, filter):
+    PATH = '/Users/erinkimbro/Projects/merian_variable_NEW/results_%s'%(filter)
+
 
     funique, idx, counts = np.unique(tab['objectId_Merian'],return_index=True, return_counts=True)
     idx_mult = idx[counts>1]
     idx_single = idx[counts==1]
     tab_new = tab[idx_mult]
-    tab_new.write('/Users/erinkimbro/Projects/merian_variable/results/combined/tables/mult_original_prop_'+catalog+'.csv', overwrite=True)
+    tab_new.write(PATH + '/combined/tables/mult_original_prop_'+catalog+'.csv', overwrite=True)
     tab_old = tab[idx_single]
-    tab_old.write('/Users/erinkimbro/Projects/merian_variable/results/combined/tables/single_prop_'+catalog+'.csv', overwrite=True)
+    tab_old.write(PATH + '/combined/tables/single_prop_'+catalog+'.csv', overwrite=True)
 
     for i in range(len(funique[counts>1])):
+
         name = tab['name'][tab['objectId_Merian']==funique[counts>1][i]]
         objid = tab['objectId_Merian'][tab['objectId_Merian']==funique[counts>1][i]][0]
 
         meas_file=[]
         for j in range(len(name)): 
-            meas1_file = glob.glob('/Users/erinkimbro/Projects/merian_variable/results/*/tables/measurements/results_'+catalog+'_'+str(name[j])+'*')
+            meas1_file = glob.glob(PATH + '/*/tables/measurements/results_'+catalog+'_'+str(name[j])+'*')
+            print(meas1_file)
             meas_file.append(meas1_file)
         
         meas_tab = []
@@ -81,24 +86,26 @@ def duplicates(tab, catalog):
             #rerun light curve
             #should i do this in a bash script? 
             for j in range(len(name)):
-                meas1_file = glob.glob('/Users/erinkimbro/Projects/merian_variable/results/*/tables/measurements/results_'+catalog+'_'+str(name[j])+'*')
+                meas1_file = glob.glob(PATH + '/*/tables/measurements/results_'+catalog+'_'+str(name[j])+'*')
+                print(meas1_file)
 
                 try:
-                    shutil.copyfile(meas1_file[0], '/Users/erinkimbro/Projects/merian_variable/results/combined/tables/measurements/results_'+catalog+'_'+str(name[j])+'.fits')
+                    shutil.copyfile(meas1_file[0], PATH + '/combined/tables/measurements/results_'+catalog+'_'+str(name[j])+'.fits')
                 except shutil.SameFileError:
                     pass
 
-            new_meas.write('/Users/erinkimbro/Projects/merian_variable/results/combined/tables/combined_measurements/results_'+catalog+'_'+str(objid)+'.fits', overwrite=True)
+            new_meas.write(PATH + '/combined/tables/combined_measurements/results_'+catalog+'_'+str(objid)+'.fits', overwrite=True)
 
 
 
-def qsofit(catalog):
-    PATH = '/Users/erinkimbro/Projects/merian_variable'
-    PATH2 = '/Users/erinkimbro/Projects/merian_variable/results/combined/'
+def qsofit(catalog, filter):
+    PATH = '/Users/erinkimbro/Projects/merian_variable_NEW/'
+    PATH2 = '/Users/erinkimbro/Projects/merian_variable_NEW/results_%s/combined/'%(filter)
+
     
     all_fits = []
 
-    files = glob.glob(PATH2+'/tables/combined_measurements/results_'+catalog+'_*.fits')
+    files = glob.glob(PATH2+'tables/combined_measurements/results_'+catalog+'_*.fits')
 
     name_all = []
 
@@ -125,7 +132,7 @@ def qsofit(catalog):
 
 
             model_t = Table([data['date'], data['mag'], data['magerr'], fit_model['model'], fit_model['dmodel']], 
-                            names=('date', 'mag', 'magerr','model_mag', 'model_mag_err'))
+                            names=('date', 'mag', 'mag_err','model_mag', 'model_mag_err'))
 
             model_t.write(PATH2 + '/tables/models/model_'+catalog+'_'+name+'.fits', overwrite=True)
 
@@ -164,8 +171,8 @@ def qsofit(catalog):
     #print(t)
 
 
-def combine_tables(catalog):
-    PATH2 = '/Users/erinkimbro/Projects/merian_variable/results/combined/'
+def combine_tables(catalog, filter):
+    PATH2 = '/Users/erinkimbro/Projects/merian_variable_NEW/results_%s/combined/'%(filter)
     single_tab = ascii.read(PATH2 + "/tables/single_prop_"+catalog+".csv")
     mult_tab = ascii.read(PATH2 + "/tables/mult_prop_combined_"+catalog+".csv")
 
@@ -175,21 +182,23 @@ def combine_tables(catalog):
 
 
 
+filter = 'zr'
 
 #deal with duplicate files
-nsa = combine_prop_tables('nsa')
+nsa = combine_prop_tables('nsa', filter)
 print(len(nsa))
-merian = combine_prop_tables('merian')
+merian = combine_prop_tables('merian', filter)
 print(len(merian))
 
 #combine duplicates                
-duplicates(merian, 'merian')
-duplicates(nsa, 'nsa')
+duplicates(merian, 'merian', filter)
+duplicates(nsa, 'nsa', filter)
 
 #run qsofit
-qsofit('merian')
-qsofit('nsa')
+qsofit('merian', filter)
+qsofit('nsa', filter)
+
 
 #combine properties from single and mult tables 
-combine_tables('merian')
-combine_tables('nsa')
+combine_tables('merian', filter)
+combine_tables('nsa', filter)

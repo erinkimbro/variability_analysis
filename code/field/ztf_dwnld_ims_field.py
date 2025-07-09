@@ -28,7 +28,7 @@ def download_images(data):
 
         cmd = "wget --output-document=../../../diapl2/CurrentData/ztf_" +filefracday +'.fits "' + url + '"'
 
-        #subprocess.run(cmd, shell=True)
+        subprocess.run(cmd, shell=True)
 
         #cmd = "mv ztf_"+filefracday+".fits " + "../../CurrentOriginalData"
 
@@ -37,12 +37,12 @@ def download_images(data):
 def move_files(good_files):
     for i in range(len(good_files)):
 
-        cmd = "mv " + good_files[i] + " " + "../WorkingDir"
+        cmd = "mv " + good_files[i] + " " + "../../../diapl2/WorkingDir"
 
         subprocess.run(cmd, shell=True)
 
 def clean_directory():
-    cmd = "rm ../../CurrentOriginalData/*.fits"
+    cmd = "rm ../../../diapl2/CurrentData/*.fits"
     subprocess.run(cmd, shell=True)
 
 data = ascii.read("masked_out.tbl")
